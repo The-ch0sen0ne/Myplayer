@@ -33,10 +33,16 @@ MainWindow::MainWindow(QWidget *parent)
             this,&MainWindow::onPlayerinitFinished);
     connect(player_,&VideoPlayer::playFailed,
             this,&MainWindow::onPlayerPlayFailed);
+
+    //解码完成后渲染图片
     connect(player_,&VideoPlayer::frameDecoded,
             ui->videoWidge,&VideoWidge::onPlayerFrameDecoded);
+
+    //播放器状态改变时，改变播放界面状态，主要是停止时释放图片
     connect(player_,&VideoPlayer::stateChanged,
             ui->videoWidge,&VideoWidge::onPlayerStateChanged);
+
+    //时间播放器发生变化时改变滑块时间
     connect(player_,&VideoPlayer::timeChanged,
             this,&MainWindow::onPlayerTimeChanged);
 
@@ -102,7 +108,7 @@ void MainWindow::on_OpenFileBtn_clicked()
 {
     QString filename =  QFileDialog::getOpenFileName(nullptr,
                                  "选择多媒体文件",
-                                 "C:/Users/chosen 1/Desktop/",
+                                 "E:/",
                                  "所有文件 (*.*);;"
                                  "音频文件 (*.mp3 *.aac *.flac);;"
                                  "视频文件 (*.mp4 *.mkv *.avi)");
@@ -113,16 +119,18 @@ void MainWindow::on_OpenFileBtn_clicked()
     player_->play();
 }
 
+
+//声音条改变时，改变显示音量并改变显示字符
 void MainWindow::on_VolumnSlider_valueChanged(int value)
 {
     ui->VolumnLabel->setText(QString("%1").arg(value));
     player_->setVolumn(value);
 }
 
+//进度条改变时，改变显示字符
 void MainWindow::on_CurrentSlider_valueChanged(int value)
 {
-//    qDebug() << "CurrentSlider = " << value;
-//    qDebug() << "CurrentSlidertext = " << getDurationText(value);
+
     ui->Curretnlabel->setText(getDurationText(value));
 }
 
@@ -190,11 +198,9 @@ void MainWindow::onPlayerTimeChanged(VideoPlayer* player)
     ui->CurrentSlider->setValue(player->getTime());
 }
 
-
+//点击事件，就是seek
 void MainWindow::onSliderClicked(MySlider* slider)
 {
-//    qDebug() << "onSliderClicked";
-//    qDebug() << slider->value();
     //改变seek时间
     player_->setSeekTime(slider->value());
 }

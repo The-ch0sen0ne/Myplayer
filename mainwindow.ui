@@ -23,6 +23,12 @@
         <height>90</height>
        </size>
       </property>
+      <property name="maximumSize">
+       <size>
+        <width>16000000</width>
+        <height>9000000</height>
+       </size>
+      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>

@@ -1,8 +1,8 @@
 #include "videoplayer.h"
 #include<thread>
 
-#define AUDIO_MAX_PKT_SIZE 1000
-#define VIDEO_MAX_PKT_SIZE 1000
+#define AUDIO_MAX_PKT_SIZE 2000
+#define VIDEO_MAX_PKT_SIZE 2000
 
 
 /*****************构造析构***********************/

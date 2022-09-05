@@ -192,6 +192,7 @@ private:
     //帧率
     double fps;
 
+
     /*********公共部分变量************/
     State state_ = Stopped;
     char filename_[512];
@@ -201,7 +202,9 @@ private:
      bool fmtCanFree_ = 0;
 
      int seekTime_ = -1;
-
+     //用于seek之后音频线程和视频线程的同步
+//     std::mutex seekMutex_;
+//     std::condition_variable seekCon_;
      /*********音频相关函数************/
      //初始化音频信息
      int initAudioInfo();

@@ -91,8 +91,6 @@ void VideoWidge::onPlayerFrameDecoded(VideoPlayer *player,
 
           rect_ = QRect(dx, dy, dw, dh);
 
-
-
     }
 
     update();

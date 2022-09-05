@@ -1,6 +1,7 @@
 #include "videoplayer.h"
 
 
+
 //初始化音频信息
 int VideoPlayer::initAudioInfo()
 {
@@ -17,6 +18,7 @@ int VideoPlayer::initAudioInfo()
    return 0;
 
 }
+
 
 
 void VideoPlayer::freeAudio()
@@ -41,6 +43,8 @@ void VideoPlayer::freeAudio()
     SDL_PauseAudio(1);
     SDL_CloseAudio();
 }
+
+
 
 int VideoPlayer::initSwr()
 {
@@ -85,6 +89,7 @@ int VideoPlayer::initSwr()
             qDebug() << "av_frame_alloc error";
             return -1;
     }
+
 //    qDebug() << "before data[0] = " << audioSwrOutFrame_->data[0];
 //    qDebug() << "before linesize[0] = " << audioSwrOutFrame_->linesize[0];
 
@@ -94,12 +99,12 @@ int VideoPlayer::initSwr()
                      audioSwrOutSpec_.chs,
                      4096,audioSwrOutSpec_.sampleFmt,1);
     RET(av_samples_alloc);
+
 //    qDebug() << "after data[0] = " << audioSwrOutFrame_->data[0];
 //    qDebug() << "after linesize[0] = " << audioSwrOutFrame_->linesize[0];
 
     return 0;
 }
-
 
 
 
@@ -109,6 +114,7 @@ void VideoPlayer::addAudioPkt(AVPacket &pkt)
     audioPacketList->push_back(pkt);
 //    audioCon_.notify_all();
 }
+
 
 
 void VideoPlayer::clearAudioList()
@@ -122,11 +128,13 @@ void VideoPlayer::clearAudioList()
 }
 
 
+
 void VideoPlayer::sdlAudioCallbackFunc(void *userdata,Uint8 *stream,int len)
 {
     VideoPlayer *player = (VideoPlayer *)userdata;
     player->sdlAudioCallback(stream,len);
 }
+
 
 
 int VideoPlayer::initSDL()
@@ -145,7 +153,6 @@ int VideoPlayer::initSDL()
     //传递给回调函数的参数
     spec.userdata = this;
 
-
     //打开音频设备
     if(SDL_OpenAudio(&spec,nullptr))
     {
@@ -153,11 +160,8 @@ int VideoPlayer::initSDL()
         return -1;
     }
 
-
-
     return 0;
 }
-
 
 
 
@@ -211,6 +215,8 @@ void VideoPlayer::sdlAudioCallback(Uint8 *stream, int len)
     }
 }
 
+
+
 //解码，返回PCM的总字节数
 int VideoPlayer::decodeAudio()
 {
@@ -230,7 +236,7 @@ int VideoPlayer::decodeAudio()
         audioPacketList->pop_front();
     }
 
-    //保存音频时钟
+    //保存音频时钟，并通知UI线程时间改变了
     if(pkt.pts != AV_NOPTS_VALUE)
     {
         audioClock_ = av_q2d(audioStream_->time_base)*pkt.pts;
@@ -238,7 +244,9 @@ int VideoPlayer::decodeAudio()
     }
 
        //注意播放视频时不能 在这个位置进行释放
+       //用于seek之后的跳过帧，以及seek之后音频线程和视频线程的同步
     if (audioSeekTime_ >= 0) {
+//        std::lock_guard<std::mutex> lock(seekMutex_);
         if (audioClock_ < audioSeekTime_) {
             // 释放pkt
             av_packet_unref(&pkt);
@@ -246,18 +254,14 @@ int VideoPlayer::decodeAudio()
         } else {
             audioSeekTime_ = -1;
         }
+//        seekCon_.notify_all();
     }
-
-
 
     //发送数据到解码器
     int ret = avcodec_send_packet(audioDecodeCtx_,&pkt);
     //释放pkt
     av_packet_unref(&pkt);
     RET(avcodec_send_packet);
-
-
-
 
     //获取解码后的数据
     ret = avcodec_receive_frame(audioDecodeCtx_,audioSwrInFrame_);
@@ -289,7 +293,6 @@ int VideoPlayer::decodeAudio()
                       //输入样本数量
                       audioSwrInFrame_->nb_samples);
     RET(swr_convert);
-//    qDebug() << "swr_convert size = " << ret;
 
     return ret*audioSwrOutSpec_.bytesPerSampleFrame;
 }

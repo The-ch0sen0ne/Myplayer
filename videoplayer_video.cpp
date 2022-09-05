@@ -86,7 +86,7 @@ void VideoPlayer::addVideoPkt(AVPacket &pkt)
 {
     std::lock_guard<std::mutex> lock(videoMutex_);
     videoPacketList->push_back(pkt);
-//    videoCon_.notify_all();
+
 }
 
 
@@ -107,21 +107,21 @@ void VideoPlayer::clearVideoList()
 //解码部分
 void VideoPlayer::decodeVideo()
 {
-    //帧延迟
+    //帧延迟，即每个帧保留的时间
     qDebug() << "fps = " << fps ;
     double frame_delay = 1.0/fps;
     while(1)
     {
 
-//        if(state_ == Pasued && videoSeekTime_ == -1)
-//        {
-//            continue;
-//        }
-
-        if(state_ == Pasued)
+        if(state_ == Pasued && videoSeekTime_ == -1)
         {
             continue;
         }
+
+//        if(state_ == Pasued)
+//        {
+//            continue;
+//        }
 
         if(state_ == Stopped)
         {
@@ -164,9 +164,16 @@ void VideoPlayer::decodeVideo()
 
 
             //用于解决seek后有几帧闪的特别快
-            // 一定要在解码成功后，再进行下面的判断
+            // 一定要在解码成功后，再进行下面的判断，不能直接对其Packet
             // 发现视频的时间是早于seekTime的，直接丢弃
             if (videoSeekTime_ >= 0) {
+                {
+//                    std::unique_lock<std::mutex> lock(seekMutex_);
+                    while(audioSeekTime_ != -1)
+                    {
+//                        seekCon_.wait(lock);
+                    }
+                }
                 if (videoClock_ < videoSeekTime_) {
                     continue;
                 } else {
@@ -187,10 +194,11 @@ void VideoPlayer::decodeVideo()
             //解码延迟+帧延迟
             double delay = extra_delay + frame_delay;
 
+
+
             double diff = videoClock_ - audioClock_;
-            if(diff > 10)
-            continue;
-            //可接受误差
+            qDebug() << "diff = " << diff;
+//            //可接受误差
             double sync = FFMAX(AV_SYNC_THRESHOLD_MIN,FFMIN(AV_SYNC_THRESHOLD_MAX,delay));
             if(diff <= -sync)
             {
@@ -199,12 +207,13 @@ void VideoPlayer::decodeVideo()
             }
             else if(diff > sync)
             {
+                //视频快了就增加每帧的延迟
                 delay = delay + diff;
             }
-            qDebug() << "video clock = " << videoClock_ << "audio clock = " << audioClock_;
+//            qDebug() << "video clock = " << videoClock_ << "audio clock = " << audioClock_;
             av_usleep(delay * 1000000);
 
-//            while (videoClock_ > audioClock_ && state_ == Playing) ;
+
 
 
             //拷贝data[0]避免读取时发生竞争条件
